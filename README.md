@@ -34,9 +34,11 @@
 
 ### qBittorrent硬链接+通知
 
+脚本的作用是帮我建立硬链接，并移动到 番剧名/Season/番剧名 S[]E[].xxx的位置上，方便自动刮削。
+
 这个不是这个的重点，大家随便搞搞就好
 
 1. 填写scripts_for_qb/downloaded.py中的设置，然后拷贝到qBittorrent服务器所在目录下
 2. 设置下载完成后执行`script.py "%N" "%F" "%L" "%G"`（硬链接+通知）
 
-> 至于为什么代码里一堆Bangumi，我只能说，我写完了才意识到我是针对Mikanani开发的。
+> 至于为什么代码里一堆Bangumi，我只能说，我写完了才意识到我是针对Mikanani开发的。   
