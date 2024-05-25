@@ -79,6 +79,20 @@ async def TrackBangumi(bangumi : db.Bangumi):
             print(f"OVER CANCEL {bangumi.name}")
             return
     print(f"OVER {bangumi.name}")
+
+async def DeleteBangumi(bangumi_id):
+    bangumi = db.session.query(db.Bangumi).get(bangumi_id)
+    if bangumi is None:
+        raise Exception("Bangumi not found")
+
+    if bangumi_id in coroutines:
+        coroutines[bangumi_id].cancel()
+        del coroutines[bangumi_id]
+
+    for torrent in bangumi.torrents:
+        db.session.delete(torrent)
+    db.session.delete(bangumi)
+    db.session.commit()
     
 async def UpdateBangumi(bangumi_id, name, season, rss, regex_rule_episode):
     if bangumi_id in coroutines:
@@ -120,6 +134,11 @@ async def AddNewBangumi(name, season, rss, regex_rule_episode):
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
+
+@app.post("/delete_bangumi", response_class=RedirectResponse)
+async def delete_bangumi(bangumi_id: int = Form(...)):
+    await DeleteBangumi(bangumi_id)
+    return RedirectResponse("/", status_code=303)
 
 @app.post("/add_bangumi", response_class=RedirectResponse)
 async def add_bangumi(name: str = Form(...), season: int = Form(...), rss: str = Form(...), regex: str = Form(...)):

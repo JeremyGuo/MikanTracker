@@ -40,12 +40,17 @@
                         label="Coroutine Status">
                     </el-table-column>
                     <el-table-column
+                        prop="rss"
+                        label="RSS">
+                    </el-table-column>
+                    <el-table-column
                         label="Actions">
                         <template slot="header">
                             <el-button type="primary" @click="showAddModal = true">Add New Bangumi</el-button>
                         </template>
                         <template slot-scope="scope">
                             <el-button size="mini" @click="trackBangumi(scope.row.id)">Track</el-button>
+                            <el-button size="mini" type="danger" @click="deleteBangumi(scope.row.id)">Delete</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -111,6 +116,18 @@
                 },
                 trackBangumi(id) {
                     window.location.href = `/track/${id}`;
+                },
+                async deleteBangumi(id) {
+                    const response = await fetch('/delete_bangumi', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: new URLSearchParams({ bangumi_id: id }).toString()
+                    });
+                    if (response.ok) {
+                        window.location.reload();
+                    }
                 }
             }
         });

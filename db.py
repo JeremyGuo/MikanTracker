@@ -54,7 +54,8 @@ class Bangumi(Base):
             'name': self.name,
             'regex_rule_episode': self.regex_rule_episode,
             'season': self.season,
-            'torrents': [t.to_dict() for t in self.torrents]
+            'torrents': [t.to_dict() for t in self.torrents],
+            'rss': self.rss
         }
 
 class Magnet(Base):
