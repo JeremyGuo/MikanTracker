@@ -50,7 +50,7 @@
                         </template>
                         <template slot-scope="scope">
                             <el-button size="mini" @click="trackBangumi(scope.row.id)">Track</el-button>
-                            <el-button size="mini" type="danger" @click="deleteBangumi(scope.row.id)">Delete</el-button>
+                            <el-button size="mini" type="danger" @click="confirmDelete(scope.row)">Delete</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -76,6 +76,14 @@
                 </el-form-item>
             </el-form>
         </el-dialog>
+
+        <el-dialog title="Confirm Deletion" :visible.sync="showDeleteModal">
+            <span>Are you sure you want to delete the Bangumi "{{ '{{' }} bangumiToDelete.name {{ '}}' }}"?</span>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="showDeleteModal = false">Cancel</el-button>
+                <el-button type="danger" @click="deleteBangumi">Delete</el-button>
+            </span>
+        </el-dialog>
     </div>
 
     <script>
@@ -86,6 +94,8 @@
                     bangumis: {{ bangumis | tojson }},
                     search: '',
                     showAddModal: false,
+                    showDeleteModal: false,
+                    bangumiToDelete: {},
                     newBangumi: {
                         name: '',
                         season: 0,
@@ -117,13 +127,17 @@
                 trackBangumi(id) {
                     window.location.href = `/track/${id}`;
                 },
-                async deleteBangumi(id) {
+                confirmDelete(bangumi) {
+                    this.bangumiToDelete = bangumi;
+                    this.showDeleteModal = true;
+                },
+                async deleteBangumi() {
                     const response = await fetch('/delete_bangumi', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded'
                         },
-                        body: new URLSearchParams({ bangumi_id: id }).toString()
+                        body: new URLSearchParams({ bangumi_id: this.bangumiToDelete.id }).toString()
                     });
                     if (response.ok) {
                         window.location.reload();
