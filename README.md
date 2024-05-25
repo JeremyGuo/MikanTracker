@@ -4,6 +4,8 @@
 
 本工具非常简单，主要用于监听并实时下载番剧。
 
+**注意** 只支持Mikanani.me的RSS源，因为他使用了规范的Hash作为bittorrent文件名，因此可以简单从文件名获取Hash，而不需要下载种子后获取。获取Hash后才能生成正确的磁力链接
+
 一个番剧被认为具有如下属性：
 
 1. 名字
@@ -23,8 +25,10 @@
 
 ### 自动下载
 
-1. 复制config.template.py到config.py并填写设置
-2. 
+1. 安装依赖项：`pip install -r requirements.txt`
+2. 复制config.template.py到config.py并填写设置
+3. `python3 main.py`运行
+4. 打开浏览器，访问`http://IP:8000`即可使用
 
 ### qBittorrent硬链接+通知
 
