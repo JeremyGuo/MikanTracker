@@ -1,0 +1,14 @@
+[Unit]
+Description=Run Bangumi Tracker at startup after NFS mount
+After=network.target remote-fs.target
+
+[Service]
+Type=simple
+User=jeremyguo
+WorkingDirectory=/mnt/Development/Projects/BangumiTracker
+ExecStart=/usr/bin/python3 /mnt/Development/Projects/BangumiTracker/main.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
