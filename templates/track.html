@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Track Bangumi</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/vue@2"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+</head>
+<body>
+    <div id="app">
+        <el-container>
+            <el-header>
+                <h1>Tracking {{ bangumi.name }} (Season {{ bangumi.season }})</h1>
+            </el-header>
+            <el-main>
+                <h2>Episodes</h2>
+                <el-table :data="bangumi.torrents" style="width: 100%">
+                    <el-table-column prop="episode" label="Episode"></el-table-column>
+                    <el-table-column prop="hash" label="Hash"></el-table-column>
+                    <el-table-column prop="status" label="Status in qBittorrent"></el-table-column>
+                </el-table>
+                <el-button type="primary" @click="goBack">Back to Home</el-button>
+            </el-main>
+        </el-container>
+    </div>
+    <script>
+        new Vue({
+            el: '#app',
+            data() {
+                return {
+                    bangumi: {{ bangumi | tojson }}
+                };
+            },
+            methods: {
+                goBack() {
+                    window.location.href = '/';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

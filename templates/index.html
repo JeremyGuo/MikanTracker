@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bangumi Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/vue@2"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+</head>
+<body>
+    <div id="app">
+        <el-container>
+            <el-header>
+                <h1>Bangumi Tracker</h1>
+            </el-header>
+            <el-main>
+                <el-table
+                    :data="filteredBangumis"
+                    style="width: 100%">
+                    <el-table-column
+                        prop="name"
+                        label="Name">
+                        <template slot="header" slot-scope="scope">
+                            Name
+                            <el-input
+                                v-model="search"
+                                size="mini"
+                                placeholder="Search by name"/>
+                        </template>
+                    </el-table-column>
+                    <el-table-column
+                        prop="season"
+                        label="Season">
+                    </el-table-column>
+                    <el-table-column
+                        prop="regex_rule_episode"
+                        label="RegEx Rule">
+                    </el-table-column>
+                    <el-table-column
+                        prop="coroutine_status"
+                        label="Coroutine Status">
+                    </el-table-column>
+                    <el-table-column
+                        label="Actions">
+                        <template slot="header">
+                            <el-button type="primary" @click="showAddModal = true">Add New Bangumi</el-button>
+                        </template>
+                        <template slot-scope="scope">
+                            <el-button size="mini" @click="trackBangumi(scope.row.id)">Track</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </el-main>
+        </el-container>
+
+        <el-dialog title="Add New Bangumi" :visible.sync="showAddModal">
+            <el-form label-position="top">
+                <el-form-item label="Name">
+                    <el-input v-model="newBangumi.name" placeholder="Name" required></el-input>
+                </el-form-item>
+                <el-form-item label="Season">
+                    <el-input v-model.number="newBangumi.season" type="number" placeholder="Season" required></el-input>
+                </el-form-item>
+                <el-form-item label="RSS URL">
+                    <el-input v-model="newBangumi.rss" placeholder="RSS URL" required></el-input>
+                </el-form-item>
+                <el-form-item label="Regex Rule">
+                    <el-input v-model="newBangumi.regex" placeholder="Regex Rule" required></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" @click="addBangumi">Add Bangumi</el-button>
+                </el-form-item>
+            </el-form>
+        </el-dialog>
+    </div>
+
+    <script>
+        new Vue({
+            el: '#app',
+            data() {
+                return {
+                    bangumis: {{ bangumis | tojson }},
+                    search: '',
+                    showAddModal: false,
+                    newBangumi: {
+                        name: '',
+                        season: 0,
+                        rss: '',
+                        regex: ''
+                    }
+                };
+            },
+            computed: {
+                filteredBangumis() {
+                    return this.bangumis.filter(bangumi => {
+                        return bangumi.name.toLowerCase().includes(this.search.toLowerCase());
+                    });
+                }
+            },
+            methods: {
+                async addBangumi() {
+                    const response = await fetch('/add_bangumi', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: new URLSearchParams(this.newBangumi).toString()
+                    });
+                    if (response.ok) {
+                        window.location.reload();
+                    }
+                },
+                trackBangumi(id) {
+                    window.location.href = `/track/${id}`;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

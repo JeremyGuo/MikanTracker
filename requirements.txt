@@ -1,0 +1,8 @@
+Flask
+feedparser
+requests
+sqlalchemy
+fastapi
+uvicorn
+jinja2
+aiofiles
