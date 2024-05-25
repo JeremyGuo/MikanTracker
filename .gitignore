@@ -1,2 +1,3 @@
 config.py
 db.sqlite
+__pycache__
