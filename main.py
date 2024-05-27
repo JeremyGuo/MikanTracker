@@ -14,6 +14,7 @@ from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 import threading
+from log import log
 
 # http://127.0.0.1:20172
 session = requests.Session()
@@ -35,12 +36,13 @@ def extract_episode_number(rule, string):
 coroutines = {}
 
 async def TrackBangumi(bangumi : db.Bangumi):
+    log(f"Starting {bangumi.name}")
     while datetime.datetime.now() < bangumi.expire_time:
-        print(f"START {bangumi.name}")
+        log(f"Starting a new loop of {bangumi.name}")
         try:
             response = session.post(bangumi.rss)
             if response.status_code != 200:
-                raise "Failed to make requests"
+                raise Exception(f"{bangumi.name} Failed to make requests to RSS feed.")
             feed = feedparser.parse(response.text)
             for entry in feed.entries:
                 # print(entry.title)
@@ -57,6 +59,7 @@ async def TrackBangumi(bangumi : db.Bangumi):
                         hash_code = get_filename_from_url(enclosure['url'])
                         break
                 if hash_code == None: continue
+                log(f"Found a new torrent for {bangumi.name} episode {ep_idx} with hash {hash_code}")
 
                 new_torrent = db.Magnet(
                     status=db.TorrentStatus.DOWNLOADING,
@@ -64,21 +67,24 @@ async def TrackBangumi(bangumi : db.Bangumi):
                     episode=ep_idx,
                     hash=hash_code
                 )
+                log(f"Adding torrent {hash_code} to qbittorrent")
                 qb.AddTorrent(config.magnet_template.format(hash_code), f'Ep:{ep_idx},Name:{bangumi.name},Season:{bangumi.season}', hash_code)
+                log(f"Added torrent {hash_code} to qbittorrent")
                 db.session.add(new_torrent)
                 db.session.commit()
 
                 bangumi.last_update_time = datetime.datetime.now()
                 bangumi.expire_time = datetime.datetime.now() + datetime.timedelta(days=30)
                 db.session.commit()
+            log(f"End a loop of {bangumi.name}")
         except Exception as e:
-            print(str(e))
+            log(f"{bangumi.name} {str(e)}")
         try:
             await asyncio.sleep(3600)
         except asyncio.CancelledError as e:
-            print(f"OVER CANCEL {bangumi.name}")
+            log(f"OVER CANCEL {bangumi.name}")
             return
-    print(f"OVER {bangumi.name}")
+    log(f"OVER {bangumi.name}")
 
 async def DeleteBangumi(bangumi_id):
     bangumi = db.session.query(db.Bangumi).get(bangumi_id)

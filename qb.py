@@ -14,15 +14,23 @@ if response.text != 'Ok.':
 print('QB 登陆成功')
 
 def AddTorrent(url, tags, hash):
-    torrent_data = {
-        'hashes': hash
-    }
-    response = session.post(f'{config.qbittorrent_url}/api/v2/torrents/info', data=torrent_data)
-    if response.status_code != 200:
+    torrent_data = { 'hashes': hash }
+    response = None
+    retry_count = 5
+
+    while retry_count > 0 and response == None:
+        retry_count -= 1
+        response = session.post(f'{config.qbittorrent_url}/api/v2/torrents/info', data=torrent_data)
+        if response.status_code != 200:
+            response = None
+    
+    if response == None:
         raise Exception(f'添加种子失败：查询失败 {response.status_code}')
+    
     if len(json.loads(response.text)) > 0:
         print("种子已经在qBittorrent下载列表中")
-        return None
+        return
+    
     torrent_data = {
         'urls': url,
         'tags': tags,
