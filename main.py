@@ -14,11 +14,14 @@ from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 import threading
+import libtorrent as lt
 from log import log
 
 # http://127.0.0.1:20172
 session = requests.Session()
 session.proxies = proxies=config.proxies
+
+event_loop_bangumi = None
 
 def get_filename_from_url(url):
     parsed_url = urlparse(url)
@@ -51,12 +54,36 @@ async def TrackBangumi(bangumi : db.Bangumi):
                 else: ep_idx = int(ep_idx)
 
                 existing_torrent = db.session.query(db.Magnet).filter_by(bangumi_id=bangumi.id, episode=ep_idx).first()
-                if existing_torrent != None: continue
+                if existing_torrent != None:
+                    hash_code = existing_torrent.hash
+                    status = qb.GetTorrentStatus(hash_code)
+                    if status == "Not Added":
+                        log(f"Torrent {hash_code} is not added, re-adding")
+                        qb.AddTorrent(config.magnet_template.format(hash_code), f'Ep:{ep_idx},Name:{bangumi.name},Season:{bangumi.season}', hash_code)
+                    continue
 
                 hash_code = None
                 for enclosure in entry.enclosures:
                     if enclosure['type'] == 'application/x-bittorrent':
-                        hash_code = get_filename_from_url(enclosure['url'])
+                        # Download the torrent file and convert the file to the hash_code
+                        torrent_response = session.get(enclosure['url'])
+                        if torrent_response.status_code != 200:
+                            raise Exception(f"{bangumi.name} Failed to download torrent file {enclosure['url']}.")
+                        # save to temp file
+                        import tempfile
+                        temp_file_path = None
+                        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                            temp_file.write(torrent_response.content)
+                            temp_file_path = temp_file.name
+                        
+                        try:
+                            # 使用 libtorrent 读取种子文件
+                            info = lt.torrent_info(temp_file_path)
+                            info_hash = str(info.info_hash())
+                            hash_code = info_hash
+                        finally:
+                            # 删除临时文件
+                            os.remove(temp_file_path)
                         break
                 if hash_code == None: continue
                 log(f"Found a new torrent for {bangumi.name} episode {ep_idx} with hash {hash_code}")
@@ -99,25 +126,9 @@ async def DeleteBangumi(bangumi_id):
         db.session.delete(torrent)
     db.session.delete(bangumi)
     db.session.commit()
-    
-async def UpdateBangumi(bangumi_id, name, season, rss, regex_rule_episode):
-    if bangumi_id in coroutines:
-        coroutines[bangumi_id].cancel()
-        del coroutines[bangumi_id]
 
-    bangumi = db.session.query(db.Bangumi).get(bangumi_id)
-    if bangumi is None:
-        raise Exception("Bangumi not found")
-
-    bangumi.name = name
-    bangumi.season = season
-    bangumi.rss = rss
-    bangumi.regex_rule_episode = regex_rule_episode
-
-    db.session.commit()
-
-    task = asyncio.create_task(TrackBangumi(bangumi))
-    coroutines[bangumi.id] = task
+async def StartNewBangumi(bangumi):
+    coroutines[bangumi.id] = asyncio.create_task(TrackBangumi(bangumi))
     
 async def AddNewBangumi(name, season, rss, regex_rule_episode):
     existing_bangumi = db.session.query(db.Bangumi).filter_by(name=name, season=season).first()
@@ -135,8 +146,9 @@ async def AddNewBangumi(name, season, rss, regex_rule_episode):
     db.session.add(new_bangumi)
     db.session.commit()
 
-    task = asyncio.create_task(TrackBangumi(new_bangumi))
-    coroutines[new_bangumi.id] = task
+    event_loop_bangumi.call_soon_threadsafe(asyncio.create_task, StartNewBangumi(new_bangumi))
+    while new_bangumi.id not in coroutines:
+        await asyncio.sleep(0.1)
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -173,20 +185,26 @@ async def track_bangumi(request: Request, bangumi_id: int):
         e['status'] = status
     return templates.TemplateResponse("track.html", {"request": request, "bangumi": bangumi_data})
 
+# A signal method for signaling main thread main executed
+bangumi_started = threading.Event()
 async def main():
     print("Starting main")
     bangumis = db.session.query(db.Bangumi).all()
     for bangumi in bangumis:
         task = asyncio.create_task(TrackBangumi(bangumi))
         coroutines[bangumi.id] = task
-    while True:
-        await asyncio.sleep(3600)
+    bangumi_started.set()
 
 def run_main():
-    asyncio.run(main())
+    asyncio.set_event_loop(event_loop_bangumi)
+    event_loop_bangumi.call_soon_threadsafe(asyncio.create_task, main())
+    event_loop_bangumi.run_forever()
 
 if __name__ == "__main__":
+    event_loop_bangumi = asyncio.new_event_loop()
     track_thread = threading.Thread(target=run_main, daemon=True)
     track_thread.start()
+    bangumi_started.wait()
+
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
