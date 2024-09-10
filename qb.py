@@ -57,8 +57,8 @@ def GetTorrentStatus(hash):
     }
     response = session.post(f'{config.qbittorrent_url}/api/v2/torrents/info', data=torrent_data)
     if response.status_code != 200:
-        return "Unknown"
+        return "Unknown", 0
     data = json.loads(response.text)
     if len(data) == 0:
-        return "Not Added"
-    return str(data[0]['progress'] * 100) + '%'
+        return "Not Added", 0
+    return str(data[0]['progress'] * 100) + '%', data[0]['progress']

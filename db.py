@@ -1,52 +1,23 @@
 import sqlite3
-from sqlalchemy import Column, Integer, String, create_engine, DateTime, Enum, ForeignKey
+from sqlalchemy import Integer, String, create_engine, DateTime, Enum, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker, relationship, mapped_column, Mapped
 from enum import Enum as PyEnum
 from typing import List, Optional
 from datetime import datetime
 
-### Main Table
-
-# - id : NUMBER
-# - name : TEXT
-# - season : NUMBER
-# - rss : TEXT
-# - regex_rule_episode : TEXT
-# - expire_time : DATE
-# - last_udpate : DATE
-
-### Proxy Table
-
-# - id : NUMBER
-# - name : TEXT
-# - path : TEXT
-
-### Torrents Table
-
-# - id : NUMBER
-# - status : NUMBER // Downloaded Ignored Waiting
-# - main_id : NUMBER
-# - episode : NUMBER
-# - episode_infer : NUMBER
-# - message_pushed : BOOLEAN
-
 Base = declarative_base()
-
-class TorrentStatus(PyEnum):
-    DOWNLOADING = "downloading"
-    DOWNLOADED = "downloaded"
 
 class Bangumi(Base):
     __tablename__ = 'main_table'
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    season = Column(Integer)
-    rss = Column(String)
-    regex_rule_episode = Column(String)
-    expire_time = Column(DateTime)
-    last_update_time = Column(DateTime)
-    torrents = relationship('Magnet', back_populates='bangumi')
+    id : Mapped[int] = mapped_column(primary_key=True)
+    name : Mapped[str] = mapped_column()
+    season : Mapped[str] = mapped_column()
+    rss : Mapped[str] = mapped_column()
+    regex_rule_episode : Mapped[str] = mapped_column()
+    expire_time : Mapped[datetime] = mapped_column()
+    last_update_time : Mapped[datetime] = mapped_column()
+    torrents : Mapped[List["Magnet"]] = relationship('Magnet', back_populates='bangumi', cascade='all, delete-orphan')
 
     def to_dict(self):
         return {
@@ -58,14 +29,18 @@ class Bangumi(Base):
             'rss': self.rss
         }
 
+class TorrentStatus(PyEnum):
+    DOWNLOADING = "downloading"
+    DOWNLOADED = "downloaded"
+
 class Magnet(Base):
     __tablename__  = "torrents"
-    id = Column(Integer, primary_key=True)
-    status = Column(Enum(TorrentStatus))
-    episode = Column(Integer)
-    bangumi_id = Column(Integer, ForeignKey('main_table.id')) 
-    bangumi = relationship('Bangumi', back_populates='torrents')
-    hash = Column(String)
+    id : Mapped[int] = mapped_column(primary_key=True)
+    status : Mapped[TorrentStatus] = mapped_column()
+    episode : Mapped[int] = mapped_column()
+    bangumi_id : Mapped[int] = mapped_column(ForeignKey('main_table.id'))
+    bangumi : Mapped["Bangumi"] = relationship(back_populates='torrents')
+    hash : Mapped[str] = mapped_column()
 
     def to_dict(self):
         return {
@@ -74,8 +49,6 @@ class Magnet(Base):
             'hash': self.hash
         }
 
-
 engine = create_engine('sqlite:///db.sqlite')
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
-session = Session()
