@@ -1,0 +1,3 @@
+[submodule "third_party/realCUGAN"]
+	path = third_party/realCUGAN
+	url = git@github.com:bilibili/ailab.git

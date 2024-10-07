@@ -20,3 +20,5 @@ notifications = {
         'chat_id': ''
     }
 }
+
+enable_super_resolution = False                 # 是否启用超分辨率
