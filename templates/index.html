@@ -1,147 +1,221 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bangumi Tracker</title>
+    <title>Bangumi Manager</title>
     <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
     <script src="https://unpkg.com/vue@2"></script>
     <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 </head>
 <body>
     <div id="app">
         <el-container>
             <el-header>
-                <h1>Bangumi Tracker</h1>
+                <h1>Bangumi Manager</h1>
             </el-header>
             <el-main>
-                <el-table
-                    :data="filteredBangumis"
-                    style="width: 100%">
-                    <el-table-column
-                        prop="name"
-                        label="Name">
-                        <template slot="header" slot-scope="scope">
-                            Name
-                            <el-input
-                                v-model="search"
-                                size="mini"
-                                placeholder="Search by name"/>
-                        </template>
-                    </el-table-column>
-                    <el-table-column
-                        prop="season"
-                        label="Season">
-                    </el-table-column>
-                    <el-table-column
-                        prop="regex_rule_episode"
-                        label="RegEx Rule">
-                    </el-table-column>
-                    <el-table-column
-                        prop="coroutine_status"
-                        label="Coroutine Status">
-                    </el-table-column>
-                    <el-table-column
-                        prop="rss"
-                        label="RSS">
-                    </el-table-column>
-                    <el-table-column
-                        label="Actions">
-                        <template slot="header">
-                            <el-button type="primary" @click="showAddModal = true">Add New Bangumi</el-button>
-                        </template>
-                        <template slot-scope="scope">
-                            <el-button size="mini" @click="trackBangumi(scope.row.id)">Track</el-button>
-                            <el-button size="mini" type="danger" @click="confirmDelete(scope.row)">Delete</el-button>
-                        </template>
-                    </el-table-column>
-                </el-table>
+                <el-row :gutter="20" style="margin-top: 20px;">
+                    <el-col :span="24">
+                        <el-card>
+                            <div slot="header" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                <h1>TV-Season</h1>
+                                <el-button type="primary" @click="addTVSeason">Add TV-Season</el-button>
+                            </div>
+                            <el-table :data="current_bangumis" stripe>
+                                <el-table-column prop="name" label="Name" :width="400"></el-table-column>
+                                <el-table-column prop="season" label="Season" :width="80"></el-table-column>
+                                <el-table-column prop="regex_rule_episode" label="Regex"></el-table-column>
+                                <el-table-column prop="expire_time" label="Expire Time" :width="200"></el-table-column>
+                                <el-table-column label="SuperResolution">
+                                    <template slot-scope="scope">
+                                        <el-switch v-model="scope.row.need_super_resolution" disabled></el-switch>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column label="Offset" prop="episode_offset" :width="80"></el-table-column>
+                                <el-table-column label="Status" prop="status" :width="120"></el-table-column>
+                                <el-table-column label="Actions">
+                                    <template slot-scope="scope">
+                                        <el-button type="danger" size="mini">Delete</el-button>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+                            <el-pagination background layout="prev, pager, next" :total="num_bangumi_pages" style="margin-top: 20px;" current-change="changeBangumiPage"/>
+                        </el-card>
+                    </el-col>
+                </el-row>
+                <el-row :gutter="20" style="margin-top: 20px;">
+                    <el-col :span="24">
+                        <el-card>
+                            <div slot="header" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                <h1>TV</h1>
+                                <el-button type="primary" @click="addTV">Add TV</el-button>
+                            </div>
+                        </el-card>
+                    </el-col>
+                </el-row>
+                <el-row :gutter="20" style="margin-top: 20px;"></el-row>
+                    <el-col :span="24">
+                        <el-card>
+                            <div slot="header" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                <h1>Movie</h1>
+                                <el-button type="primary" @click="addMovie">Add Movie</el-button>
+                            </div>
+                        </el-card>
+                    </el-col>
+                </el-row>
             </el-main>
         </el-container>
-
-        <el-dialog title="Add New Bangumi" :visible.sync="showAddModal">
-            <el-form label-position="top">
+        <el-dialog title="Add TV-Season" :visible.sync="show_tv_season_dialog" :close-on-click-modal="false">
+            <el-form>
                 <el-form-item label="Name">
-                    <el-input v-model="newBangumi.name" placeholder="Name" required></el-input>
+                    <el-input v-model="new_tv_season.name"></el-input>
                 </el-form-item>
                 <el-form-item label="Season">
-                    <el-input v-model.number="newBangumi.season" type="number" placeholder="Season" required></el-input>
+                    <el-input v-model="new_tv_season.season"></el-input>
                 </el-form-item>
                 <el-form-item label="RSS URL">
-                    <el-input v-model="newBangumi.rss" placeholder="RSS URL" required></el-input>
+                    <el-input v-model="new_tv_season.rss_url"></el-input>
                 </el-form-item>
                 <el-form-item label="Regex Rule">
-                    <el-input v-model="newBangumi.regex" placeholder="Regex Rule" required></el-input>
+                    <el-input v-model="new_tv_season.regex_rule_episode"></el-input>
                 </el-form-item>
-                <el-form-item>
-                    <el-button type="primary" @click="addBangumi">Add Bangumi</el-button>
+                <el-form-item label="Episode Offset">
+                    <el-input v-model="new_tv_season.episode_offset"></el-input>
+                </el-form-item>
+                <el-form-item label="Need Super Resolution">
+                    <el-switch v-model="new_tv_season.need_super_resolution"></el-switch>
+                </el-form-item>
+                <el-form-item label="Checked for repeated Name and Season" v-if="new_tv_season.need_recheck">
+                    <el-checkbox v-model="new_tv_season.rechecked"></el-checkbox>
                 </el-form-item>
             </el-form>
-        </el-dialog>
-
-        <el-dialog title="Confirm Deletion" :visible.sync="showDeleteModal">
-            <span>Are you sure you want to delete the Bangumi "{{ '{{' }} bangumiToDelete.name {{ '}}' }}"?</span>
             <span slot="footer" class="dialog-footer">
-                <el-button @click="showDeleteModal = false">Cancel</el-button>
-                <el-button type="danger" @click="deleteBangumi">Delete</el-button>
+                <el-button @click="show_tv_season_dialog = false">Hide</el-button>
+                <el-button type="primary" @click="submitAddTVSeason">Confirm</el-button>
             </span>
         </el-dialog>
     </div>
-
     <script>
         new Vue({
             el: '#app',
+            delimiters: ['[[', ']]'],
             data() {
                 return {
-                    bangumis: {{ bangumis | tojson }},
-                    search: '',
-                    showAddModal: false,
-                    showDeleteModal: false,
-                    bangumiToDelete: {},
-                    newBangumi: {
+                    current_bangumis: [],
+                    num_bangumi_pages: 0,
+                    current_bangumi_page: 0,
+                    current_tvs: [],
+                    num_tv_pages: 0,
+                    current_tv_page: 0,
+                    current_movies: [],
+                    num_movie_pages: 0,
+                    current_movie_page: 0,
+
+                    show_tv_season_dialog: false,
+                    new_tv_season: {
                         name: '',
-                        season: 0,
-                        rss: '',
-                        regex: ''
+                        season: '',
+                        rss_url: '',
+                        regex_rule_episode: '',
+                        episode_offset: 0,
+                        need_super_resolution: false,
+                        need_recheck: false,
+                        rechecked: false
                     }
                 };
             },
+            mounted() {
+                this.reloadBangumis();
+            },
             computed: {
-                filteredBangumis() {
-                    return this.bangumis.filter(bangumi => {
-                        return bangumi.name.toLowerCase().includes(this.search.toLowerCase());
-                    });
-                }
+
             },
             methods: {
-                async addBangumi() {
-                    const response = await fetch('/add_bangumi', {
+                reloadBangumis() {
+                    fetch('/api/track', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: new URLSearchParams(this.newBangumi).toString()
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({'track_type': 'bangumi', 'min_index': -1, 'count': 0})
+                    }).then((response) => {
+                        if (response.ok) {
+                            return response.json();
+                        } else {
+                            this.$message.error('Failed to load bangumis');
+                            throw new Error('Failed to load bangumis');
+                        }
+                    }).then((data) => {
+                        this.num_bangumi_pages = parseInt(Math.ceil(data.count / 20));
+                        console.log(`num_bangumi_pages: ${this.num_bangumi_pages}`);
+                        this.updateCurrentBangumis(0);
                     });
-                    if (response.ok) {
-                        window.location.reload();
-                    }
                 },
-                trackBangumi(id) {
-                    window.location.href = `/track/${id}`;
-                },
-                confirmDelete(bangumi) {
-                    this.bangumiToDelete = bangumi;
-                    this.showDeleteModal = true;
-                },
-                async deleteBangumi() {
-                    const response = await fetch('/delete_bangumi', {
+                changeBangumiPage(page_idx) { this.updateCurrentBangumis(page_idx - 1); },
+                updateCurrentBangumis(page_idx) {
+                    this.current_bangumi_page = page_idx;
+                    fetch('/api/track', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: new URLSearchParams({ bangumi_id: this.bangumiToDelete.id }).toString()
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({'track_type': 'bangumi', 'min_index': page_idx * 20, 'count': 20})
+                    }).then((response) => {
+                        if (response.ok) {
+                            return response.json();
+                        } else {
+                            this.$message.error('Failed to load bangumis');
+                            throw new Error('Failed to load bangumis');
+                        }
+                    }).then((data) => {
+                        if (this.current_bangumi_page === page_idx) {
+                            this.current_bangumis = data;
+                            console.log(this.current_bangumis);
+                        }
                     });
-                    if (response.ok) {
-                        window.location.reload();
-                    }
+                },
+                submitAddTVSeason() {
+                    fetch('/api/bangumi/add',{
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: this.new_tv_season.name,
+                            season: this.new_tv_season.season,
+                            rss: this.new_tv_season.rss_url,
+                            regex: this.new_tv_season.regex_rule_episode,
+                            episode_offset: this.new_tv_season.episode_offset,
+                            need_super_resolution: this.new_tv_season.need_super_resolution,
+                            checked: this.new_tv_season.rechecked
+                        })
+                    }).then((response) => {
+                        if (response.ok) {
+                            this.$message.success('TV-Season added successfully');
+                            this.show_tv_season_dialog = false;
+                            this.reloadBangumis();
+                            this.new_tv_season = {
+                                name: '',
+                                season: '',
+                                rss_url: '',
+                                regex_rule_episode: '',
+                                episode_offset: 0,
+                                need_super_resolution: false,
+                                need_recheck: false,
+                                rechecked: false
+                            };
+                        } else {
+                            if (response.status === 400) {
+                                this.$message.warn('There are repeated TV-Season with the same name and season, recheck is needed');
+                                this.new_tv_season.need_recheck = true;
+                            } else {
+                                this.$message.error('Failed to add TV-Season, code = ' + response.status);
+                            }
+                        }
+                    })
+                },
+                addTVSeason() {
+                    this.show_tv_season_dialog = true;
+                },
+                addTV() {
+                    window.location.href = '/add_tv';
+                },
+                addMovie() {
+                    window.location.href = '/add_movie';
                 }
             }
         });

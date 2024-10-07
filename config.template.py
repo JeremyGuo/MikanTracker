@@ -1,10 +1,22 @@
-proxies = {
-    'http': '',
-    'https': '',
+proxies = { # SOCKS5代理
+    'http': 'http://127.0.0.1:20172',
+    'https': 'http://127.0.0.1:20172',
 }
 
-magnet_template = "magnet:?xt=urn:btih:{}&tr=http%3a%2f%2ft.nyaatracker.com%2fannounce&tr=http%3a%2f%2ftracker.kamigami.org%3a2710%2fannounce&tr=http%3a%2f%2fshare.camoe.cn%3a8080%2fannounce&tr=http%3a%2f%2fopentracker.acgnx.se%2fannounce&tr=http%3a%2f%2fanidex.moe%3a6969%2fannounce&tr=http%3a%2f%2ft.acg.rip%3a6699%2fannounce&tr=https%3a%2f%2ftr.bangumi.moe%3a9696%2fannounce&tr=udp%3a%2f%2ftr.bangumi.moe%3a6969%2fannounce&tr=http%3a%2f%2fopen.acgtracker.com%3a1096%2fannounce&tr=udp%3a%2f%2ftracker.opentrackr.org%3a1337%2fannounce"
+# 配置qBittorrent Web UI的URL和认证信息
+qbittorrent_url = 'http://192.168.1.213:8080'   # 请根据实际情况修改
+qbittorrent_username = ''                       # 请根据实际情况修改
+qbittorrent_password = ''                       # 请根据实际情况修改
 
-qbittorrent_url = ''
-qbittorrent_username = ''
-qbittorrent_password = ''
+mounted_path = "/mnt/data"                      # 存放数据的根目录
+tv_save_path = mounted_path + "/Video"          # 实际存放的子目录，这里实际上会存放到/mnt/data/Video/TV_NAME/SEASON/EPISODE.mp4/mkv...
+movie_save_path = mounted_path + "/Video"       # 实际存放的子目录，这里实际上会存放到/mnt/data/Video/MOVIE_NAME.mp4/mkv...
+bangumi_save_path = mounted_path + "/Video"     # 实际存放的子目录，这里实际上会存放到/mnt/data/Video/BANGUMI_NAME/SEASON/EPISODE.mp4/mkv...
+
+notifications = {
+    'telegram': {
+        'type': '',
+        'token': '',
+        'chat_id': ''
+    }
+}

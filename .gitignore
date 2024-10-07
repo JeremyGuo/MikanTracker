@@ -1,4 +1,4 @@
 config.py
-db.sqlite
+database.sqlite
 __pycache__/
 logs/
