@@ -100,6 +100,8 @@ class Torrent(Base):
     movie_id : Mapped[Optional[int]] = mapped_column(ForeignKey('movie.id'))
     movie : Mapped[Optional[Movie]] = relationship(back_populates='torrent')
 
+    super_resolution_mission : Mapped[Optional["SRMission"]] = relationship(back_populates='torrent', cascade='all, delete-orphan')
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -107,6 +109,48 @@ class Torrent(Base):
             'torrent_type': self.torrent_type,
             'episode_raw': self.episode_raw,
             'hash': self.hash
+        }
+
+class SRMissionStatus(PyEnum):
+    PENDING = 'pending'
+    PROCESSING = 'processing'
+    DONE = 'done'
+    ERROR = 'error'
+
+class SRMission(Base):
+    __tablename__ = 'sr_mission'
+    id : Mapped[int] = mapped_column(primary_key=True)
+    input_file : Mapped[str] = mapped_column()
+    output_file : Mapped[str] = mapped_column()
+    status : Mapped[SRMissionStatus] = mapped_column()
+    start_time : Mapped[datetime] = mapped_column(default=datetime.now)
+    end_time : Mapped[datetime] = mapped_column(default=datetime.now)
+
+    encode_duration_ms : Mapped[int] = mapped_column(default=0)
+    super_resolution_duration_ms : Mapped[int] = mapped_column(default=0)
+    progress_encode : Mapped[float] = mapped_column(default=0)
+    progress_super_resolution : Mapped[float] = mapped_column(default=0)
+
+    encoder : Mapped[str] = mapped_column()
+    error_info : Mapped[str] = mapped_column(default='')
+
+    torrent_id : Mapped[int] = mapped_column(ForeignKey('torrents.id'))
+    torrent : Mapped[Torrent] = relationship(back_populates='super_resolution_mission')
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "input_file": self.input_file,
+            "output_file": self.output_file,
+            "status": self.status.value,
+            "start_time": str(self.start_time),
+            "end_time": str(self.end_time),
+            "encode_duration_ms": self.encode_duration_ms,
+            "super_resolution_duration_ms": self.super_resolution_duration_ms,
+            "progress_encode": self.progress_encode,
+            "progress_super_resolution": self.progress_super_resolution,
+            "encoder": self.encoder,
+            "error_info": self.error_info
         }
 
 engine = create_engine('sqlite:///database.sqlite')

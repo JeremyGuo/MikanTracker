@@ -35,6 +35,18 @@ class BangumiDelRequest(BaseModel):
 async def delete_bangumi(request: Request, del_request: BangumiDelRequest):
     return await DeleteBangumi(del_request.bangumi_id)
 
+class BangumiToggle(BaseModel):
+    bangumi_id: int
+@app.post("/api/bangumi/toggle_sr")
+async def toggle_bangumi_sr(request: Request, toggle_request: BangumiToggle):
+    with Session() as session:
+        bangumi = session.query(Bangumi).filter_by(id=toggle_request.bangumi_id).first()
+        if bangumi is None:
+            return JSONResponse(content={"status": "error", "message": "Bangumi not found"})
+        bangumi.need_super_resolution = not bangumi.need_super_resolution
+        session.commit()
+        return JSONResponse(content={"status": "success", "need_super_resolution": bangumi.need_super_resolution})
+
 class TVAddRequest(BaseModel):
     name: str
     season: str
@@ -80,9 +92,31 @@ async def getTrack(request: Request, track_request: GetTrackList):
             data = []
             if track_request.track_type == "bangumi":
                 bangumis = session.query(Bangumi).order_by(Bangumi.id.desc()).offset(track_request.min_index).limit(track_request.count).all()
-                data = [b.to_dict() for b in bangumis]
-                for b in data:
-                    b['status'] = await QueryBangumiStatus(b['id'])
+                data = []
+                for b in bangumis:
+                    bv = b.to_dict()
+                    bv['status'] = await QueryBangumiStatus(b.id)
+                    bv['episodeData'] = []
+                    for torrent in b.torrents:
+                        epi_data = {
+                            "id": torrent.id,
+                            "episode": torrent.episode_raw + b.episode_offset,
+                            "status": str(torrent.status),
+                            "hash": torrent.hash,
+                            "super_resolution_status": {
+                                "status": "None",
+                                "progress": 0,
+                                "err_info": ""
+                            }
+                        }
+                        if torrent.super_resolution_mission is not None:
+                            epi_data['super_resolution_status'] = {
+                                "status": str(torrent.super_resolution_mission.status),
+                                "progress": torrent.super_resolution_mission.progress_encode,
+                                "err_info": torrent.super_resolution_mission.error_info
+                            }
+                        bv['episodeData'].append(epi_data)
+                    data.append(bv)
             elif track_request.track_type == "tv":
                 tvs = session.query(TV).order_by(TV.id.desc()).offset(track_request.min_index).limit(track_request.count).all()
                 data = [t.to_dict() for t in tvs]

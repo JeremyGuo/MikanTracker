@@ -21,14 +21,60 @@
                                 <h1>TV-Season</h1>
                                 <el-button type="primary" @click="addTVSeason">Add TV-Season</el-button>
                             </div>
-                            <el-table :data="current_bangumis" stripe>
+                            <el-table :data="current_bangumis" expand-change="loadEpisodeData">
+                                <el-table-column type="expand">
+                                    <template slot-scope="scope">
+                                        <div style="width:100%; padding: 0 10%;">
+                                            <el-table :data="scope.row.episodeData">
+                                                <el-table-column prop="episode" label="Episode" :width="80"></el-table-column>
+                                                <el-table-column prop="hash" label="Hash" :width="380"></el-table-column>
+                                                <el-table-column label="Status" :width="150">
+                                                    <template slot-scope="scope">
+                                                        <div v-if="scope.row.status == 'TorrentStatus.DOWNLOADED'">
+                                                            Downloaded
+                                                        </div>
+                                                        <div v-else-if="scope.row.status == 'TorrentStatus.DOWNLOADING'">
+                                                            Downloading
+                                                        </div>
+                                                    </template>
+                                                </el-table-column>
+                                                <el-table-column label="Super Resolution" :width="380">
+                                                    <template slot-scope="scope">
+                                                        <div v-if="scope.row.super_resolution_status.status == 'None'">
+                                                            None
+                                                        </div>
+                                                        <div v-else>
+                                                            <div v-if="scope.row.super_resolution_status.status == 'SRMissionStatus.DONE'">
+                                                                Finished
+                                                            </div>
+                                                            <div v-else-if="scope.row.super_resolution_status.status == 'SRMissionStatus.ERROR'">
+                                                                Error: [[scope.row.super_resolution_status.err_info]]
+                                                            </div>
+                                                            <div v-else-if="scope.row.super_resolution_status.status == 'SRMissionStatus.PENDING'">
+                                                                Pending
+                                                            </div>
+                                                            <div v-else>
+                                                                <el-progress :percentage="scope.row.super_resolution_status.progress"></el-progress>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                </el-table-column>
+                                                <el-table-column label="Action" :width="100">
+                                                    <template slot-scope="scope">
+                                                        <el-button type="primary" size="mini">ReSR</el-button>
+                                                    </template>
+                                                </el-table-column>
+                                            </el-table>
+                                        </div>
+                                    </template>
+                                </el-table-column>
                                 <el-table-column prop="name" label="Name" :width="400"></el-table-column>
                                 <el-table-column prop="season" label="Season" :width="80"></el-table-column>
                                 <el-table-column prop="regex_rule_episode" label="Regex"></el-table-column>
                                 <el-table-column prop="expire_time" label="Expire Time" :width="200"></el-table-column>
                                 <el-table-column label="SuperResolution">
                                     <template slot-scope="scope">
-                                        <el-switch v-model="scope.row.need_super_resolution" disabled></el-switch>
+                                        <el-switch v-model="scope.row.need_super_resolution" @change="toggleSRTVSeason(scope.row)"></el-switch>
                                     </template>
                                 </el-table-column>
                                 <el-table-column label="Offset" prop="episode_offset" :width="80"></el-table-column>
@@ -165,6 +211,13 @@
                         }
                     }).then((data) => {
                         if (this.current_bangumi_page === page_idx) {
+                            var modified_data = data;
+                            data.forEach((item) => {
+                                item.episodeData.forEach((episode) => {
+                                    let prog_data = episode.super_resolution_status.progress;
+                                    episode.super_resolution_status.progress = parseInt(prog_data * 1000) / 10;
+                                });
+                            })
                             this.current_bangumis = data;
                             console.log(this.current_bangumis);
                         }
@@ -207,6 +260,20 @@
                             }
                         }
                     })
+                },
+                toggleSRTVSeason(bangumi) {
+                    console.log(bangumi);
+                    fetch('/api/bangumi/toggle_sr', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({'bangumi_id': bangumi.id})
+                    }).then((response) => {
+                        if (response.ok) {
+                        } else {
+                            this.$message.error('Failed to toggle Super Resolution');
+                            bangumi.need_super_resolution = !bangumi.need_super_resolution;
+                        }
+                    });
                 },
                 addTVSeason() {
                     this.show_tv_season_dialog = true;
