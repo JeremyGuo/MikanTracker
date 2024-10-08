@@ -90,6 +90,7 @@ class Torrent(Base):
     episode_raw : Mapped[Optional[int]] = mapped_column()
     hash : Mapped[str] = mapped_column()
     magnet : Mapped[str] = mapped_column()
+    path : Mapped[Optional[str]] = mapped_column()
 
     bangumi_id : Mapped[Optional[int]] = mapped_column(ForeignKey('bangumi.id'))
     bangumi : Mapped[Optional[Bangumi]] = relationship(back_populates='torrents')
@@ -100,7 +101,7 @@ class Torrent(Base):
     movie_id : Mapped[Optional[int]] = mapped_column(ForeignKey('movie.id'))
     movie : Mapped[Optional[Movie]] = relationship(back_populates='torrent')
 
-    super_resolution_mission : Mapped[Optional["SRMission"]] = relationship(back_populates='torrent', cascade='all, delete-orphan')
+    super_resolution_mission : Mapped[List["SRMission"]] = relationship(back_populates='torrent', cascade='all, delete-orphan')
 
     def to_dict(self):
         return {

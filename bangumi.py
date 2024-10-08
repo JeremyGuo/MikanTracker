@@ -300,13 +300,17 @@ async def DownloadFinished(hash: str, torrent_path: str):
         if torrent is None:
             return JSONResponse(status_code=404, content={'message': 'Torrent not found.'})
         torrent.status = TorrentStatus.DOWNLOADED
+        torrent.path = torrent_path
         session.commit()
+
+        torrent_path = os.path.join(config.mounted_path, torrent_path)
+        if not os.path.exists(torrent_path):
+            return JSONResponse(status_code=404, content={'message': 'Torrent file not found.', 'path': torrent_path})
         if torrent.torrent_type == TorrentType.TV:
             tv = session.query(TV).filter_by(tv_id=torrent.id).first()
             if tv is None:
                 return JSONResponse(status_code=500, content={'message': 'TV not found.'})
             target_path = os.path.join(config.tv_save_path, tv.name, f'Season {tv.season}')
-            torrent_path = os.path.join(config.mounted_path, torrent_path)
             new_filename = None
             if os.path.isfile(torrent_path):
                 return JSONResponse(status_code=500, content={'message': 'TV should be a directory.'})
@@ -320,11 +324,13 @@ async def DownloadFinished(hash: str, torrent_path: str):
                         ext = os.path.splitext(filename)[1]
                         new_filename = f"{tv.name} S{str(tv.season).zfill(2)}E{str(episode + tv.episode_offset).zfill(2)}{ext}"
                         dst_file = os.path.join(target_path, new_filename)
+                        if os.path.exists(dst_file):
+                            os.remove(dst_file)
                         os.makedirs(os.path.dirname(dst_file), exist_ok=True)
                         os.link(src_file, dst_file)
-            if tv.need_super_resolution:
-                mission_manager.add_mission(torrent.id, new_filename, new_filename, 'hevc_nvenc')
-            else:
+                        if is_video_file(filename) and tv.need_super_resolution:
+                            mission_manager.add_mission(torrent.id, dst_file, dst_file, 'hevc_nvenc')
+            if not tv.need_super_resolution:
                 sendNotificationFinish('TV', new_filename, 'download', target_path)
             return JSONResponse(status_code=200, content={'message': 'TV downloaded.'})
         elif torrent.torrent_type == TorrentType.MOVIE:
@@ -332,14 +338,17 @@ async def DownloadFinished(hash: str, torrent_path: str):
             if movie is None:
                 return JSONResponse(status_code=500, content={'message': 'Movie not found.'})
             target_path = config.movie_save_path
-            torrent_path = os.path.join(config.mounted_path, torrent_path)
             new_filename = None
+            video_file = None
             if os.path.isfile(torrent_path):
                 ext = os.path.splitext(torrent_path)[1]
                 new_filename = f"{movie.name}{ext}"
                 dst_file = os.path.join(target_path, new_filename)
+                if os.path.exists(dst_file):
+                    os.remove(dst_file)
                 os.makedirs(os.path.dirname(dst_file), exist_ok=True)
                 os.link(torrent_path, dst_file)
+                video_file = dst_file
             else:
                 for root, _, files in os.walk(torrent_path):
                     for filename in files:
@@ -349,10 +358,14 @@ async def DownloadFinished(hash: str, torrent_path: str):
                                 ext = os.path.splitext(filename)[1]
                                 new_filename = f"{movie.name}{ext}"
                                 dst_file = os.path.join(target_path, new_filename)
+                                if os.path.exists(dst_file):
+                                    os.remove(dst_file)
                                 os.makedirs(os.path.dirname(dst_file), exist_ok=True)
                                 os.link(src_file, dst_file)
+                                if is_video_file(filename):
+                                    video_file = dst_file
             if movie.need_super_resolution:
-                mission_manager.add_mission(torrent.id, new_filename, new_filename, 'hevc_nvenc')
+                mission_manager.add_mission(torrent.id, video_file, video_file, 'hevc_nvenc')
             else:
                 sendNotificationFinish('Movie', new_filename, 'download', target_path)
             return JSONResponse(status_code=200, content={'message': 'Movie downloaded.'})
@@ -361,7 +374,6 @@ async def DownloadFinished(hash: str, torrent_path: str):
             if bangumi is None:
                 return JSONResponse(status_code=500, content={'message': 'Bangumi not found.'})
             target_path = os.path.join(config.bangumi_save_path, bangumi.name, f'Season {bangumi.season}')
-            torrent_path = os.path.join(config.mounted_path, torrent_path)
             new_filename = None
             dst_video_file = None
             if os.path.isfile(torrent_path):

@@ -103,17 +103,22 @@ async def getTrack(request: Request, track_request: GetTrackList):
                             "episode": torrent.episode_raw + b.episode_offset,
                             "status": str(torrent.status),
                             "hash": torrent.hash,
+                            "path": torrent.path,
                             "super_resolution_status": {
                                 "status": "None",
                                 "progress": 0,
                                 "err_info": ""
                             }
                         }
-                        if torrent.super_resolution_mission is not None:
+                        if len(torrent.super_resolution_mission) > 0:
+                            ms = torrent.super_resolution_mission[0]
+                            for m in torrent.super_resolution_mission:
+                                if m.id > ms.id:
+                                    ms = m
                             epi_data['super_resolution_status'] = {
-                                "status": str(torrent.super_resolution_mission.status),
-                                "progress": torrent.super_resolution_mission.progress_encode,
-                                "err_info": torrent.super_resolution_mission.error_info
+                                "status": str(ms.status),
+                                "progress": ms.progress_encode,
+                                "err_info": ms.error_info
                             }
                         bv['episodeData'].append(epi_data)
                     data.append(bv)

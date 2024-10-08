@@ -8,14 +8,12 @@ import datetime
 import config
 from notification import sendNotificationFinish, sendNotificationWarning
 
-def SuperResolutionFinished(torrent_id: int):
+def SuperResolutionFinished(mission_id: int):
     with Session() as session:
-        torrent = session.query(Torrent).filter_by(id=torrent_id).first()
-        if torrent is None:
-            return
-        sr_mission = torrent.super_resolution_mission
+        sr_mission = session.query(SRMission).filter(SRMission.id == mission_id).first()
         if sr_mission is None:
             return
+        torrent = sr_mission.torrent
         type_name = ""
         if torrent.torrent_type == TorrentType.TV:
             type_name = "TV"
@@ -73,7 +71,7 @@ def UpScalerMissionWrapper(mission_id):
             mission.status = SRMissionStatus.DONE
             mission.end_time = datetime.datetime.now()
             session.commit()
-            SuperResolutionFinished(mission.torrent_id)
+            SuperResolutionFinished(mission.id)
     except Exception as e:
         with Session() as session:
             mission = session.query(SRMission).filter(SRMission.id == mission_id).first()
@@ -81,7 +79,7 @@ def UpScalerMissionWrapper(mission_id):
             mission.end_time = datetime.datetime.now()
             mission.status = SRMissionStatus.ERROR
             session.commit()
-            SuperResolutionFinished(mission.torrent_id)
+            SuperResolutionFinished(mission.id)
     return True
 
 class MissionManager(threading.Thread):
@@ -99,26 +97,15 @@ class MissionManager(threading.Thread):
                 mission.end_time = datetime.datetime.now()
                 mission.error_info = "Unexpected shutdown"
                 session.commit()
-                SuperResolutionFinished(mission.torrent_id)
+                SuperResolutionFinished(mission.id)
 
             # Start all pending missions
             pending_missions = session.query(SRMission).filter(SRMission.status == SRMissionStatus.PENDING).all()
             for mission in pending_missions:
-                self.add_mission(mission.id)
+                self.mission_queue.put(mission.id)
 
     def add_mission(self, torrent_id, inp_file, out_file, encoder):
         with Session() as session:
-            old_missions = session.query(SRMission).filter(SRMission.torrent_id == torrent_id).all()
-            has_pending_mission = False
-            for old_mission in old_missions:
-                if old_mission.status == SRMissionStatus.PENDING:
-                    has_pending_mission = True
-                else:
-                    session.delete(old_mission)
-                    session.commit()
-            if has_pending_mission:
-                return
-
             mission = SRMission(
                 torrent_id = torrent_id,
                 input_file = inp_file,
