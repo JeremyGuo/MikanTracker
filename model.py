@@ -127,6 +127,7 @@ class SRMission(Base):
     start_time : Mapped[datetime] = mapped_column(default=datetime.now)
     end_time : Mapped[datetime] = mapped_column(default=datetime.now)
 
+    total_frames: Mapped[int] = mapped_column(default=0)
     encode_duration_ms : Mapped[int] = mapped_column(default=0)
     super_resolution_duration_ms : Mapped[int] = mapped_column(default=0)
     progress_encode : Mapped[float] = mapped_column(default=0)

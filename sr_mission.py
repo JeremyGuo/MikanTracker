@@ -15,6 +15,7 @@ import numpy as np
 sys.path.append('third_party/realCUGAN/Real-CUGAN')
 from upcunet_v3 import RealWaifuUpScaler
 
+
 def get_total_size(directory):
     total_size = 0
     for dirpath, dirnames, filenames in os.walk(directory):

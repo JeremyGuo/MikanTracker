@@ -2,3 +2,5 @@ config.py
 database.sqlite
 __pycache__/
 logs/
+.vscode
+models/

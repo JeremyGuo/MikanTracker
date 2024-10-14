@@ -1,3 +1,6 @@
 [submodule "third_party/realCUGAN"]
 	path = third_party/realCUGAN
 	url = git@github.com:bilibili/ailab.git
+[submodule "third_party/RTRT"]
+	path = third_party/RTRT
+	url = git@github.com:JeremyGuo/RealCUGAN-TensorRT.git

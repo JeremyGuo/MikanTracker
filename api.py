@@ -2,7 +2,7 @@ from app import *
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-from model import Session, Bangumi, TV, Movie
+from model import Session, Bangumi, TV, Movie, SRMissionStatus
 from pydantic import BaseModel
 from bangumi import DownloadFinished
 from bangumi import DeleteBangumi, AddNewBangumi, QueryBangumiStatus
@@ -106,6 +106,7 @@ async def getTrack(request: Request, track_request: GetTrackList):
                             "path": torrent.path,
                             "super_resolution_status": {
                                 "status": "None",
+                                "speed": 0,
                                 "progress": 0,
                                 "err_info": ""
                             }
@@ -115,9 +116,17 @@ async def getTrack(request: Request, track_request: GetTrackList):
                             for m in torrent.super_resolution_mission:
                                 if m.id > ms.id:
                                     ms = m
+                            speed = 0
+                            import datetime
+                            if ms.status == SRMissionStatus.DONE:
+                                speed = ms.total_frames / (ms.end_time - ms.start_time).total_seconds()
+                            elif ms.status == SRMissionStatus.PROCESSING:
+                                speed = ms.total_frames * ms.progress_encode / (datetime.datetime.now() - ms.start_time).total_seconds()
+                            speed = round(speed, 2)
                             epi_data['super_resolution_status'] = {
                                 "status": str(ms.status),
                                 "progress": ms.progress_encode,
+                                "speed": speed,
                                 "err_info": ms.error_info
                             }
                         bv['episodeData'].append(epi_data)

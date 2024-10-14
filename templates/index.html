@@ -63,6 +63,13 @@
                                                         </div>
                                                     </template>
                                                 </el-table-column>
+                                                <el-table-column label="SR Speed">
+                                                    <template slot-scope="scope">
+                                                        <div>
+                                                            [[scope.row.super_resolution_status.speed]] FPS
+                                                        </div>
+                                                    </template>
+                                                </el-table-column>
                                                 <el-table-column label="Action" :width="100">
                                                     <template slot-scope="scope">
                                                         <el-button type="primary" size="mini" @click="restartSR(scope.row.hash, scope.row.path, reloadBangumis)">ReSR</el-button>

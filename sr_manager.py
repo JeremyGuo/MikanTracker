@@ -5,8 +5,13 @@ import threading
 import config
 from time import sleep
 import datetime
-import config
 from notification import sendNotificationFinish, sendNotificationWarning
+
+import sys
+sys.path.append('third_party/')
+from RTRT.sr_tool import sr_video, SRVideoStat, sr_create_engine
+from RTRT.upcunet2x import RealCUGANUpScaler2x
+import RTRT.config as sr_config
 
 def SuperResolutionFinished(mission_id: int):
     with Session() as session:
@@ -26,28 +31,37 @@ def SuperResolutionFinished(mission_id: int):
         else:
             sendNotificationWarning(type_name, sr_mission.output_file, 'super_resolution', sr_mission.error_info)
 
-model = RealWaifuUpScaler(config.sr_scale, config.sr_model_path, config.sr_half, config.sr_device)
+# model = RealWaifuUpScaler(config.sr_scale, config.sr_model_path, config.sr_half, config.sr_device)
+engine_config = sr_config.default_config
+engine_config.sr_threads = config.sr_num_thread
+engine_config.sr_scale = config.sr_scale
+engine_config.sr_modelpath = config.sr_model_path
+engine_config.sr_tile = config.sr_tile
+engine_config.sr_alpha = config.sr_alpha
+engine_config.sr_device = config.sr_device
+engine_config.sr_half = config.sr_half
+engine_config.sr_width = 1920
+engine_config.sr_height = 1080
+
+engine_config.sr_tmp_dir = config.sr_tmp_dir
+engine_config.sr_encode_params = config.sr_encode_params
+engine = sr_create_engine(engine_config)
 def UpScalerMissionWrapper(mission_id):
     try:
         with Session() as session:
             mission = session.query(SRMission).filter(SRMission.id == mission_id).first()
             mission.start_time = datetime.datetime.now()
             session.commit()
-            upscaler = UpScalerMission(
-                num_thread  =   config.sr_num_thread,
-                scale       =   config.sr_scale,
-                model       =   model,
-                tile        =   config.sr_tile,
-                cache_mode  =   config.sr_cache_mode,
-                alpha       =   config.sr_alpha,
-                encoder     =   mission.encoder,
-                inp_file    =   mission.input_file,
-                out_file    =   mission.output_file
-            )
+
+            import copy
+            config = copy.deepcopy(engine_config)
+            config.sr_encoder = mission.encoder
+
+            stat = SRVideoStat()
             result = None
             def run_upscaler():
                 try:
-                    upscaler.start()
+                    sr_video(engine, mission.input_file, mission.output_file, config, verbose=False, stat=stat)
                 except Exception as e:
                     global result
                     print(str(e))
@@ -56,7 +70,8 @@ def UpScalerMissionWrapper(mission_id):
             thread.start()
             while thread.is_alive():
                 mission = session.query(SRMission).filter(SRMission.id == mission_id).first()
-                enc_prog, super_prog = upscaler.getProgress()
+                enc_prog, super_prog = stat.getProgress()
+                mission.total_frames = stat.total_frames
                 mission.progress_encode = enc_prog
                 mission.progress_super_resolution = super_prog
                 session.commit()
@@ -66,8 +81,8 @@ def UpScalerMissionWrapper(mission_id):
                 raise result
         with Session() as session:
             mission = session.query(SRMission).filter(SRMission.id == mission_id).first()
-            mission.encode_duration_ms = upscaler.total_encoded_time_ms
-            mission.super_resolution_duration_ms = upscaler.total_super_resolution_time_ms
+            mission.encode_duration_ms = 0
+            mission.super_resolution_duration_ms = 0
             mission.status = SRMissionStatus.DONE
             mission.end_time = datetime.datetime.now()
             session.commit()

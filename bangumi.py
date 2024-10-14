@@ -329,7 +329,7 @@ async def DownloadFinished(hash: str, torrent_path: str):
                         os.makedirs(os.path.dirname(dst_file), exist_ok=True)
                         os.link(src_file, dst_file)
                         if is_video_file(filename) and tv.need_super_resolution:
-                            mission_manager.add_mission(torrent.id, dst_file, dst_file, 'hevc_nvenc')
+                            mission_manager.add_mission(torrent.id, dst_file, dst_file, 'libx264')
             if not tv.need_super_resolution:
                 sendNotificationFinish('TV', new_filename, 'download', target_path)
             return JSONResponse(status_code=200, content={'message': 'TV downloaded.'})
@@ -365,7 +365,7 @@ async def DownloadFinished(hash: str, torrent_path: str):
                                 if is_video_file(filename):
                                     video_file = dst_file
             if movie.need_super_resolution:
-                mission_manager.add_mission(torrent.id, video_file, video_file, 'hevc_nvenc')
+                mission_manager.add_mission(torrent.id, video_file, video_file, 'libx264')
             else:
                 sendNotificationFinish('Movie', new_filename, 'download', target_path)
             return JSONResponse(status_code=200, content={'message': 'Movie downloaded.'})
@@ -402,7 +402,7 @@ async def DownloadFinished(hash: str, torrent_path: str):
                             os.link(src_file, dst_file)
             if bangumi.need_super_resolution:
                 log(f"Adding super resolution mission for {new_filename}")
-                mission_manager.add_mission(torrent.id, dst_video_file, dst_video_file, 'hevc_nvenc')
+                mission_manager.add_mission(torrent.id, dst_video_file, dst_video_file, 'libx264')
             else:
                 sendNotificationFinish('Bangumi', new_filename, 'download', target_path)
             return JSONResponse(status_code=200, content={'message': 'Bangumi downloaded.'})
