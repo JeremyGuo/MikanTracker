@@ -1,5 +1,7 @@
 # MikanTracker
 
+![](templates/example.png)
+
 一个用于自动追番同时为其他种子提供自动刮削的系统，包括季度下载和电影。
 
 本系统允许你的qBittorrent（下载器）、存储（NAS）、本系统，位于不同的操作系统中。
