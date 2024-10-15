@@ -21,4 +21,16 @@ notifications = {
     }
 }
 
-enable_super_resolution = False                 # 是否启用超分辨率
+# 以下为超分辨率RealCUGAN的配置，详见RealCUGAN-Tensor仓库
+from pathlib import Path
+sr_num_thread = 2                     
+sr_scale = 2
+sr_model_name = 'pro-conservative-up2x.pth'
+sr_model_path = Path(__file__).parent / f"third_party/realCUGAN/Real-CUGAN/weights_v3/{sr_model_name}"
+sr_half = True
+sr_tile = 5
+sr_cache_mode = 0
+sr_alpha = 1
+sr_tmp_dir = Path.home() / "tmp"
+sr_encode_params = ['-crf', '21']
+sr_device = "cuda:0"

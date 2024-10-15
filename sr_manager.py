@@ -1,6 +1,5 @@
 from multiprocessing import Queue
 from model import SRMission, Session, SRMissionStatus, Torrent, TorrentType
-from sr_mission import RealWaifuUpScaler, UpScalerMission
 import threading
 import config
 from time import sleep
@@ -8,10 +7,10 @@ import datetime
 from notification import sendNotificationFinish, sendNotificationWarning
 
 import sys
-sys.path.append('third_party/')
-from RTRT.sr_tool import sr_video, SRVideoStat, sr_create_engine
-from RTRT.upcunet2x import RealCUGANUpScaler2x
-import RTRT.config as sr_config
+sys.path.append('third_party/RTRT')
+from realcugan_trt.sr_tool import sr_video, SRVideoStat, sr_create_engine
+from realcugan_trt.upcunet2x import RealCUGANUpScaler2x
+import realcugan_trt.config as sr_config
 
 def SuperResolutionFinished(mission_id: int):
     with Session() as session:
