@@ -21,9 +21,8 @@ cd bangumi-manager
 ```
 2. 配置设置，将`config.template.py`复制到`config.py`然后进行设置
 3. 配置qBittorrent
-    1. `scripts_for_qb/downloaded_new.py`设置为`qBittorrent`下载完成后运行，格式为`.py "%F" "%I"`
-    2. 设置`scripts_for_qb/downloaded_new.py`中的几个选项，其中`mounted_root`是为了排除你的系统和qBittorrent所在的系统文件目录不一致的问题（比如：对qBittorrent NAS挂在`/mnt/ABC/`，但是你的系统看来 挂在`/mnt/DEF/`）。
-    3. **注意** `mounted_root`中的`/Shared/`最后的`/`是必要的，这是为了让`/Shared/Download/abc`被翻译为相对路径`Download/abc`。
+    1. `scripts_for_qb/downloaded_new.py`设置为`qBittorrent`下载完成后运行，格式为`.py "%I"`
+    2. 设置`scripts_for_qb/downloaded_new.py`中的几个选项
 4. 使用pip安装依赖包：`pip install -r requirements.txt`
 5. \[Optional\] 安装超分辨率工具需要的环境，详见RealCUGAN-Tensor仓库
 6. 方法1: 手动启动

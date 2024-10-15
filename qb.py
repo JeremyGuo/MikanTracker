@@ -2,6 +2,7 @@ import requests
 import config
 import json
 from model import Torrent, Session, TorrentType
+from log import log
 
 req_session = requests.Session()
 
@@ -13,7 +14,6 @@ login_data = {
 response = req_session.post(f'{config.qbittorrent_url}/api/v2/auth/login', data=login_data)
 if response.text != 'Ok.':
     raise Exception('登录失败，请检查用户名和密码')
-print('QB 登陆成功')
 import datetime
 last_login_date = datetime.datetime.now()
 def CheckLogin():
@@ -21,7 +21,6 @@ def CheckLogin():
         response = req_session.post(f'{config.qbittorrent_url}/api/v2/auth/login', data=login_data)
         if response.text != 'Ok.':
             raise Exception('登录失败，请检查用户名和密码')
-        print('QB 登陆成功')
 
 def AddTorrent(torrent_id: int):
     CheckLogin()
@@ -51,6 +50,21 @@ def AddTorrent(torrent_id: int):
         response = req_session.post(f'{config.qbittorrent_url}/api/v2/torrents/add', data=torrent_data)
         if response.status_code != 200 or response.text != 'Ok.':
             raise Exception(f'添加种子失败 {response.text} {response.status_code} {torrent_data}')
+
+def GetTorrentPath(hash) -> str:
+    CheckLogin()
+    torrent_data = {
+        'hashes': hash
+    }
+    try:
+        response = req_session.post(f'{config.qbittorrent_url}/api/v2/torrents/info', data=torrent_data)
+        if response.status_code != 200:
+            return None
+        data = json.loads(response.text)
+        return data[0]['content_path']
+    except Exception as e:
+        log(str(e))
+        return None
 
 def GetTorrentStatus(hash):
     CheckLogin()

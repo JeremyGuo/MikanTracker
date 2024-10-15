@@ -1,4 +1,6 @@
 from app import *
+import qb
+import config
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
@@ -11,11 +13,15 @@ from bangumi import DeleteMovie, AddNewMovie
 
 class FinishRequest(BaseModel):
     hash: str
-    path: str
 @app.post("/api/finish")
 async def finish_bangumi(request: Request, finish_request: FinishRequest):
-    log(f"Download finished: {finish_request.hash} {finish_request.path}")
-    return await DownloadFinished(finish_request.hash, finish_request.path)
+    log(f"Download finished: {finish_request.hash}")
+    torrent_path = qb.GetTorrentPath(finish_request.hash)
+    if torrent_path is None or not torrent_path.startswith(config.qbittorrent_root):
+        return JSONResponse(content={"status": "error", "message": "Torrent path error"})
+    torrent_path = torrent_path[len(config.qbittorrent_root):]
+    log(f"Download finished: {finish_request.hash} {torrent_path}")
+    return await DownloadFinished(finish_request.hash, torrent_path)
 
 class BangumiAddRequest(BaseModel):
     name: str

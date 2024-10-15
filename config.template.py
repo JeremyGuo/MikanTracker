@@ -7,6 +7,7 @@ proxies = { # SOCKS5代理
 qbittorrent_url = 'http://192.168.1.213:8080'   # 请根据实际情况修改
 qbittorrent_username = ''                       # 请根据实际情况修改
 qbittorrent_password = ''                       # 请根据实际情况修改
+qbittorrent_root = '/Shared/'                   # 请根据实际情况修改
 
 mounted_path = "/mnt/data"                      # 存放数据的根目录
 tv_save_path = mounted_path + "/Video"          # 实际存放的子目录，这里实际上会存放到/mnt/data/Video/TV_NAME/SEASON/EPISODE.mp4/mkv...

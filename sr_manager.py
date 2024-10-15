@@ -107,9 +107,7 @@ class MissionManager(threading.Thread):
             # Mark all processing missions as error
             processing_missions = session.query(SRMission).filter(SRMission.status == SRMissionStatus.PROCESSING).all()
             for mission in processing_missions:
-                mission.status = SRMissionStatus.ERROR
-                mission.end_time = datetime.datetime.now()
-                mission.error_info = "Unexpected shutdown"
+                mission.status = SRMissionStatus.PENDING
                 session.commit()
                 SuperResolutionFinished(mission.id)
 
